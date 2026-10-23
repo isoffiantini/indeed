@@ -81,6 +81,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             form_id = match.group(1)
             try:
+                api_started_at = time.perf_counter()
                 form = self.fetch(f"{BASE_URL}/{form_id}")
                 fields_url = f"{BASE_URL}/{form_id}/fields"
                 fields = self.fetch(fields_url)
@@ -101,7 +102,12 @@ class Handler(BaseHTTPRequestHandler):
                     options_url = (field.get("config") or {}).get("options")
                     if isinstance(options_url, str) and options_url in options_cache:
                         field["_availableOptions"] = options_cache[options_url]
-                self.respond(200, {"form": form, "fields": fields})
+                avature_api_duration_ms = (time.perf_counter() - api_started_at) * 1000
+                self.respond(200, {
+                    "form": form,
+                    "fields": fields,
+                    "timing": {"avatureApiDurationMs": avature_api_duration_ms},
+                })
             except HTTPError as exc:
                 message = exc.read().decode("utf-8", "replace")[:1000]
                 self.respond(exc.code, {"error": f"Schema API returned HTTP {exc.code}.", "details": message})
